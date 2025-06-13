@@ -1,0 +1,175 @@
+import pygame
+import time
+import random
+
+# инициализация pygame
+pygame.init()
+
+# цветааа (RGB)
+black = (0, 0, 0)
+white = (255, 255, 255)
+red = (213, 50, 80)
+green = (0, 255, 0)
+blue = (50, 153, 213)
+gray = (100, 100, 100)
+
+# параметрыыы окна
+window_width = 600
+window_height = 400
+
+# окно игры
+game_display = pygame.display.set_mode((window_width, window_height))
+pygame.display.set_caption('змеюшка')
+
+# часы
+clock = pygame.time.Clock()
+
+# размер блока и начальная скорость
+block_size = 10
+snake_speed = 15
+
+# шрифт
+font_style = pygame.font.SysFont(None, 30)
+
+
+def show_score(score):
+    value = font_style.render(f"счетчик: {score}", True, white)
+    game_display.blit(value, [10, 10])
+
+
+def message(msg, color):
+    mesg = font_style.render(msg, True, color)
+    game_display.blit(mesg, [window_width / 6, window_height / 3])
+
+
+def draw_snake(snake_list):
+    for segment in snake_list:
+        pygame.draw.rect(game_display, white, [segment[0], segment[1], block_size, block_size])
+
+
+def draw_obstacles(obstacles):
+    for obs in obstacles:
+        pygame.draw.rect(game_display, gray, [obs[0], obs[1], block_size, block_size])
+
+
+def pause():
+    paused = True
+    message("пауз. нажмите P, чтобы продолжить.", blue)
+    pygame.display.update()
+    while paused:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                paused = False
+
+
+def game_loop():
+    game_over = False
+    game_close = False
+
+    x1 = window_width / 2
+    y1 = window_height / 2
+    x1_change = 0
+    y1_change = 0
+
+    snake_list = []
+    snake_length = 1
+
+    foodx = round(random.randrange(0, window_width - block_size) / 10.0) * 10.0
+    foody = round(random.randrange(0, window_height - block_size) / 10.0) * 10.0
+
+    # препятсвиее
+    obstacles = []
+    for _ in range(10):
+        ox = round(random.randrange(0, window_width - block_size) / 10.0) * 10.0
+        oy = round(random.randrange(0, window_height - block_size) / 10.0) * 10.0
+        obstacles.append([ox, oy])
+
+    while not game_over:
+
+        while game_close:
+            game_display.fill(black)
+            message("ойой вы праиграли! Q - выход, C - заново", red)
+            show_score(snake_length - 1)
+            pygame.display.update()
+
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        game_over = True
+                        game_close = False
+                    elif event.key == pygame.K_c:
+                        game_loop()
+
+        # управление
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_over = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT and x1_change == 0:
+                    x1_change = -block_size
+                    y1_change = 0
+                elif event.key == pygame.K_RIGHT and x1_change == 0:
+                    x1_change = block_size
+                    y1_change = 0
+                elif event.key == pygame.K_UP and y1_change == 0:
+                    y1_change = -block_size
+                    x1_change = 0
+                elif event.key == pygame.K_DOWN and y1_change == 0:
+                    y1_change = block_size
+                    x1_change = 0
+                elif event.key == pygame.K_p:
+                    pause()
+
+        # проверка стен
+        if x1 >= window_width or x1 < 0 or y1 >= window_height or y1 < 0:
+            game_close = True
+
+        x1 += x1_change
+        y1 += y1_change
+        game_display.fill(black)
+
+        # отрисовка еды
+        pygame.draw.rect(game_display, green, [foodx, foody, block_size, block_size])
+
+        # отрисовка препятствий
+        draw_obstacles(obstacles)
+
+        # обновление змейки
+        snake_head = [x1, y1]
+        snake_list.append(snake_head)
+        if len(snake_list) > snake_length:
+            del snake_list[0]
+
+        # проверка на столкновение с собой
+        for segment in snake_list[:-1]:
+            if segment == snake_head:
+                game_close = True
+
+        # проверка на столкновение с препятствием
+        for obs in obstacles:
+            if x1 == obs[0] and y1 == obs[1]:
+                game_close = True
+
+        draw_snake(snake_list)
+        show_score(snake_length - 1)
+        pygame.display.update()
+
+        # поедание едыы
+        if x1 == foodx and y1 == foody:
+            foodx = round(random.randrange(0, window_width - block_size) / 10.0) * 10.0
+            foody = round(random.randrange(0, window_height - block_size) / 10.0) * 10.0
+            snake_length += 1
+            # уувеличение скорости при росте
+            global snake_speed
+            snake_speed += 0.5
+
+        clock.tick(snake_speed)
+
+    pygame.quit()
+    quit()
+
+
+game_loop()
